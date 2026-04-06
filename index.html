@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INS乛STARK ズ</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Cinzel',serif;
+  background: radial-gradient(circle at top,#1a120b,#000);
+  color:#e6d3a3;
+}
+
+header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:20px;background:#120a05;
+  border-bottom:2px solid #c9a45c;
+}
+
+.logo{display:flex;align-items:center;gap:10px}
+
+.logo img{
+  width:55px;
+  height:55px;
+  border-radius:50%;
+  border:2px solid gold;
+  box-shadow:0 0 15px gold;
+}
+
+
+.logo h1{color:#d4af37}
+
+nav a{margin:0 15px;color:#e6d3a3;text-decoration:none}
+nav a:hover{color:#ffd700}
+
+section{padding:60px 20px;text-align:center}
+
+iframe{
+  width:100%;
+  max-width:1000px;
+  aspect-ratio:16/9;
+  height:auto;
+  border-radius:12px;
+  border:2px solid #c9a45c;
+}
+
+.video-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:25px;margin-top:40px;
+}
+
+.video-card{
+  background:#120a05;
+  border:1px solid #c9a45c;
+  border-radius:12px;
+  overflow:hidden;
+  transition:.3s;
+  cursor:pointer;
+}
+
+.video-card:hover{
+  transform:scale(1.05);
+  box-shadow:0 0 20px #c9a45c;
+}
+
+.video-card img{width:100%}
+
+.video-info{padding:10px;text-align:left}
+.video-title{font-size:14px;margin-bottom:5px}
+.video-stats{font-size:12px;color:#aaa}
+
+.play-btn{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:rgba(0,0,0,.6);
+  padding:10px;border-radius:50%;
+}
+
+.card-wrapper{position:relative}
+
+@keyframes glow{
+  from{box-shadow:0 0 10px gold}
+  to{box-shadow:0 0 25px gold,0 0 40px orange}
+}
+
+@keyframes spin{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
+
+@keyframes flame{
+  0%{transform:scale(1); filter: blur(6px) brightness(1)}
+  50%{transform:scale(1.05); filter: blur(8px) brightness(1.2)}
+  100%{transform:scale(1.1); filter: blur(10px) brightness(1.4)}
+}
+
+@keyframes sparks{
+  0%{opacity:.6; transform:rotate(0deg)}
+  50%{opacity:1; transform:rotate(180deg)}
+  100%{opacity:.6; transform:rotate(360deg)}
+}
+  to{transform:rotate(360deg)}
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">
+<img src="logo.png">
+<h1>INS乛STARK ズ</h1>
+</div>
+<nav>
+<a href="#videos">Videos</a>
+</nav>
+</header>
+
+<section id="videos">
+<h2>⚔ Latest Videos</h2>
+<iframe id="mainVideo" src="" allowfullscreen></iframe>
+
+<h2 style="margin-top:40px">🔥 Watch more Viking Rise Videos</h2>
+<div class="video-grid" id="videoContainer"></div>
+</section>
+
+<script>
+const API_KEY = "AIzaSyBQHfq_ilA6zJh2uis8lPRG517nZ1Ngkik";
+const CHANNEL_ID = "UCxsG8CM4e0d68Avm-uIg1tA";
+
+let nextPageToken = "";
+let isLoading = false;
+
+async function fetchVideos(loadMore = false){
+try{
+
+if(isLoading) return;
+isLoading = true;
+
+const url = `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=8&pageToken=${nextPageToken}`;
+
+const res = await fetch(url);
+const data = await res.json();
+
+if(!data.items){
+console.error("API ERROR:", data);
+return;
+}
+
+const videoIds = data.items
+  .filter(item => item.id.videoId)
+  .map(item => item.id.videoId)
+  .join(",");
+
+if(!videoIds) return;
+
+const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?key=${API_KEY}&id=${videoIds}&part=snippet,statistics,contentDetails`);
+const statsData = await statsRes.json();
+
+const container = document.getElementById("videoContainer");
+
+if(!loadMore) container.innerHTML = "";
+
+let first = !loadMore;
+
+statsData.items.forEach(video => {
+
+if(first){
+document.getElementById("mainVideo").src = `https://www.youtube.com/embed/${video.id}`;
+first = false;
+}
+
+const views = video.statistics.viewCount;
+const likes = video.statistics.likeCount || "N/A";
+
+function formatDuration(d){
+  const match = d.match(/PT(?:(\d+)M)?(?:(\d+)S)?/);
+  const m = match[1] || 0;
+  const s = match[2] || 0;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+const duration = formatDuration(video.contentDetails.duration);
+
+const div = document.createElement("div");
+div.className = "video-card";
+
+div.innerHTML = `
+<div class="card-wrapper">
+<img src="${video.snippet.thumbnails.high.url}">
+<div class="play-btn">▶</div>
+<div style="position:absolute;bottom:5px;right:5px;background:black;padding:3px 6px;font-size:12px;border-radius:4px;">
+${duration}
+</div>
+</div>
+
+<div class="video-info">
+<div class="video-title">${video.snippet.title}</div>
+<div class="video-stats">👁 ${views} | 👍 ${likes}</div>
+</div>
+`;
+
+div.onclick = () => {
+document.getElementById("mainVideo").src = `https://www.youtube.com/embed/${video.id}`;
+window.scrollTo({top:0,behavior:'smooth'});
+};
+
+container.appendChild(div);
+
+});
+
+nextPageToken = data.nextPageToken || "";
+isLoading = false;
+
+}catch(err){
+console.error("ERROR:", err);
+}
+}
+
+window.addEventListener("scroll", () => {
+if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 200){
+if(nextPageToken) fetchVideos(true);
+}
+});
+
+fetchVideos();
+</script>
+
+</body>
+</html>
